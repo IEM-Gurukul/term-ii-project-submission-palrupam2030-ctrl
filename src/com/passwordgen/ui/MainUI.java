@@ -4,6 +4,7 @@ import com.passwordgen.core.CharacterPool;
 import com.passwordgen.core.Generator;
 import com.passwordgen.core.PasswordGenerator;
 import com.passwordgen.core.SecurePasswordGenerator;
+import com.passwordgen.util.PasswordFileManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,6 +21,7 @@ public class MainUI extends JFrame {
     private JCheckBox secureModeCheck;
     private JButton generateButton;
     private JButton copyButton;
+    private JButton saveButton;
 
     public MainUI() {
         setTitle("Random Password Generator");
@@ -60,12 +62,16 @@ public class MainUI extends JFrame {
         JPanel buttonPanel = new JPanel();
         generateButton = new JButton("Generate Password");
         copyButton = new JButton("Copy Password");
+        saveButton = new JButton("Save Password");
+
         buttonPanel.add(generateButton);
         buttonPanel.add(copyButton);
+        buttonPanel.add(saveButton);
         add(buttonPanel);
 
         generateButton.addActionListener(e -> generatePassword());
         copyButton.addActionListener(e -> copyPassword());
+        saveButton.addActionListener(e -> savePassword());
 
         setVisible(true);
     }
@@ -128,6 +134,31 @@ public class MainUI extends JFrame {
                 "Password copied to clipboard!",
                 "Success",
                 JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private void savePassword() {
+        String password = outputField.getText();
+
+        if (password.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No password to save.",
+                    "Save Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            PasswordFileManager.savePasswordToFile(password, "saved_passwords.txt");
+            JOptionPane.showMessageDialog(this,
+                    "Password saved to file successfully!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error saving password: " + ex.getMessage(),
+                    "File Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {
