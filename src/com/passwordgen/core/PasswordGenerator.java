@@ -1,20 +1,35 @@
 package com.passwordgen.core;
 
-import com.passwordgen.policy.PasswordPolicy;
+import java.util.List;
 
-public class PasswordGenerator {
-    private PasswordPolicy policy;
+public class PasswordGenerator implements Generator {
 
-    public PasswordGenerator(PasswordPolicy policy) {
-        this.policy = policy;
+    protected CharacterPool characterPool;
+
+    public PasswordGenerator(CharacterPool characterPool) {
+        this.characterPool = characterPool;
     }
 
-    public void setPolicy(PasswordPolicy policy) {
-        this.policy = policy;
-    }
+    @Override
+    public String generatePassword(int length) {
+        String pool = characterPool.getPool();
 
-    public String generate(int length, boolean upper, boolean lower, boolean numbers, boolean symbols) {
-        // Delegates to the currently selected policy
-        return policy.generatePassword(length, upper, lower, numbers, symbols);
+        if (pool.isEmpty()) {
+            throw new IllegalArgumentException("Select at least one character type.");
+        }
+
+        if (length <= 0) {
+            throw new IllegalArgumentException("Password length must be greater than 0.");
+        }
+
+        List<Character> charList = CharacterPool.getCharList(pool);
+        StringBuilder password = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            int index = CharacterPool.getRandom().nextInt(charList.size());
+            password.append(charList.get(index));
+        }
+
+        return password.toString();
     }
 }

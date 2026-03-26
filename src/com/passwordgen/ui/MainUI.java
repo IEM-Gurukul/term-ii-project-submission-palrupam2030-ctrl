@@ -1,105 +1,136 @@
 package com.passwordgen.ui;
 
+import com.passwordgen.core.CharacterPool;
+import com.passwordgen.core.Generator;
 import com.passwordgen.core.PasswordGenerator;
-import com.passwordgen.policy.BasicPasswordPolicy;
-import com.passwordgen.policy.StrongPasswordPolicy;
+import com.passwordgen.core.SecurePasswordGenerator;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.datatransfer.StringSelection;
 
 public class MainUI extends JFrame {
+
     private JTextField lengthField;
-    private JCheckBox upperCheck, lowerCheck, numCheck, symCheck;
-    private JRadioButton basicRadio, strongRadio;
-    private JTextField resultField;
-    private PasswordGenerator generator;
+    private JTextField outputField;
+    private JCheckBox uppercaseCheck;
+    private JCheckBox lowercaseCheck;
+    private JCheckBox numbersCheck;
+    private JCheckBox symbolsCheck;
+    private JCheckBox secureModeCheck;
+    private JButton generateButton;
+    private JButton copyButton;
 
     public MainUI() {
-        setTitle("Secure Random Password Generator");
-        setSize(400, 350);
+        setTitle("Random Password Generator");
+        setSize(500, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // Center on screen
-        setLayout(new GridLayout(8, 1, 5, 5));
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(9, 1, 10, 10));
 
-        // Initialize default generator
-        generator = new PasswordGenerator(new StrongPasswordPolicy());
+        JLabel titleLabel = new JLabel("Random Password Generator", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        add(titleLabel);
 
-        // UI Components
         JPanel lengthPanel = new JPanel();
-        lengthPanel.add(new JLabel("Password Length: "));
-        lengthField = new JTextField("12", 5);
+        lengthPanel.add(new JLabel("Password Length:"));
+        lengthField = new JTextField(10);
         lengthPanel.add(lengthField);
         add(lengthPanel);
 
-        upperCheck = new JCheckBox("Include Uppercase", true);
-        lowerCheck = new JCheckBox("Include Lowercase", true);
-        numCheck = new JCheckBox("Include Numbers", true);
-        symCheck = new JCheckBox("Include Symbols", true);
-        
-        JPanel checkPanel1 = new JPanel();
-        checkPanel1.add(upperCheck);
-        checkPanel1.add(lowerCheck);
-        add(checkPanel1);
-        
-        JPanel checkPanel2 = new JPanel();
-        checkPanel2.add(numCheck);
-        checkPanel2.add(symCheck);
-        add(checkPanel2);
+        uppercaseCheck = new JCheckBox("Include Uppercase", true);
+        lowercaseCheck = new JCheckBox("Include Lowercase", true);
+        numbersCheck = new JCheckBox("Include Numbers", true);
+        symbolsCheck = new JCheckBox("Include Symbols", false);
+        secureModeCheck = new JCheckBox("Use Secure Mode", true);
 
-        basicRadio = new JRadioButton("Basic Policy");
-        strongRadio = new JRadioButton("Strong Policy (Guarantees all types)", true);
-        ButtonGroup policyGroup = new ButtonGroup();
-        policyGroup.add(basicRadio);
-        policyGroup.add(strongRadio);
-        
-        JPanel radioPanel = new JPanel();
-        radioPanel.add(basicRadio);
-        radioPanel.add(strongRadio);
-        add(radioPanel);
+        add(uppercaseCheck);
+        add(lowercaseCheck);
+        add(numbersCheck);
+        add(symbolsCheck);
+        add(secureModeCheck);
 
-        JButton generateBtn = new JButton("Generate Password");
-        add(generateBtn);
+        JPanel outputPanel = new JPanel();
+        outputPanel.add(new JLabel("Generated Password:"));
+        outputField = new JTextField(20);
+        outputField.setEditable(false);
+        outputPanel.add(outputField);
+        add(outputPanel);
 
-        resultField = new JTextField();
-        resultField.setEditable(false);
-        resultField.setHorizontalAlignment(JTextField.CENTER);
-        resultField.setFont(new Font("Monospaced", Font.BOLD, 16));
-        add(resultField);
+        JPanel buttonPanel = new JPanel();
+        generateButton = new JButton("Generate Password");
+        copyButton = new JButton("Copy Password");
+        buttonPanel.add(generateButton);
+        buttonPanel.add(copyButton);
+        add(buttonPanel);
 
-        // Event Listener (Exception Handling implemented here)
-        generateBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    int length = Integer.parseInt(lengthField.getText());
-                    
-                    if (basicRadio.isSelected()) {
-                        generator.setPolicy(new BasicPasswordPolicy());
-                    } else {
-                        generator.setPolicy(new StrongPasswordPolicy());
-                    }
+        generateButton.addActionListener(e -> generatePassword());
+        copyButton.addActionListener(e -> copyPassword());
 
-                    String pwd = generator.generate(length, upperCheck.isSelected(), lowerCheck.isSelected(), numCheck.isSelected(), symCheck.isSelected());
-                    resultField.setText(pwd);
+        setVisible(true);
+    }
 
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(MainUI.this, "Please enter a valid number for length.", "Input Error", JOptionPane.ERROR_MESSAGE);
-                } catch (IllegalArgumentException ex) {
-                    JOptionPane.showMessageDialog(MainUI.this, ex.getMessage(), "Configuration Error", JOptionPane.WARNING_MESSAGE);
-                }
+    private void generatePassword() {
+        try {
+            int length = Integer.parseInt(lengthField.getText().trim());
+
+            CharacterPool pool = new CharacterPool(
+                    uppercaseCheck.isSelected(),
+                    lowercaseCheck.isSelected(),
+                    numbersCheck.isSelected(),
+                    symbolsCheck.isSelected()
+            );
+
+            Generator generator;
+
+            if (secureModeCheck.isSelected()) {
+                generator = new SecurePasswordGenerator(pool);
+            } else {
+                generator = new PasswordGenerator(pool);
             }
-        });
+
+            String password = generator.generatePassword(length);
+            outputField.setText(password);
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a valid numeric password length.",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IllegalArgumentException ex) {
+            JOptionPane.showMessageDialog(this,
+                    ex.getMessage(),
+                    "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Unexpected error: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void copyPassword() {
+        String password = outputField.getText();
+
+        if (password.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No password to copy.",
+                    "Copy Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        StringSelection selection = new StringSelection(password);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, null);
+
+        JOptionPane.showMessageDialog(this,
+                "Password copied to clipboard!",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
     public static void main(String[] args) {
-        // Run UI on the Event Dispatch Thread
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new MainUI().setVisible(true);
-            }
-        });
+        SwingUtilities.invokeLater(MainUI::new);
     }
 }
